@@ -134,8 +134,9 @@ bool q_delete_mid(struct list_head *head)
         fast = fast->next->next;
     }
 
-    if (fast == head)
+    if (fast == head) {
         slow = slow->prev;
+    }
 
     element_t *middle_element = list_entry(slow, element_t, list);
 
@@ -195,4 +196,3 @@ int q_merge(struct list_head *head, bool descend)
     // https://leetcode.com/problems/merge-k-sorted-lists/
     return 0;
 }
-
