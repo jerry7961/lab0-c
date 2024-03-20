@@ -151,7 +151,38 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
+    if (!head || list_empty(head)) {
+        return false;
+    }
+
+    struct list_head *current, *safe;
+    element_t *entry, *next_entry;
+    bool mark_del = false;
+
+    list_for_each_safe (current, safe, head) {
+        if (current->next == head) {
+            if (mark_del) {
+                entry = list_entry(current, element_t, list);
+                list_del(current);
+                q_release_element(entry);
+            }
+            break;
+        }
+
+        entry = list_entry(current, element_t, list);
+        next_entry = list_entry(current->next, element_t, list);
+
+        if (!strcmp(entry->value, next_entry->value)) {
+            list_del(current);
+            q_release_element(entry);
+            mark_del = true;
+        } else if (mark_del) {
+            list_del(current);
+            q_release_element(entry);
+            mark_del = false;
+        }
+    }
+
     return true;
 }
 
@@ -196,3 +227,4 @@ int q_merge(struct list_head *head, bool descend)
     // https://leetcode.com/problems/merge-k-sorted-lists/
     return 0;
 }
+
