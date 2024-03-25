@@ -228,6 +228,28 @@ void q_reverse(struct list_head *head)
 /* Reverse the nodes of the list k at a time */
 void q_reverseK(struct list_head *head, int k)
 {
+    if (!head || list_empty(head) || k <= 1)
+        return;
+
+    int len = 0;
+    struct list_head *current = head->next;
+    len = q_size(head);
+
+    struct list_head partition, *temp_head = head, *tail;
+    INIT_LIST_HEAD(&partition);
+
+    for (int i = 0; i < (len / k); i++) {
+        current = temp_head->next;
+        for (int j = 0; j < k; j++) {
+            tail = current;
+            current = current->next;
+        }
+        list_cut_position(&partition, temp_head, tail);
+        q_reverse(&partition);
+        list_splice_init(&partition, temp_head);
+        temp_head = current->prev;
+    }
+    return;
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
 }
 
@@ -268,20 +290,67 @@ void q_sort(struct list_head *head, bool descend)
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head)) {
+        return 0;
+    }
+
+    struct list_head *current, *tmp, *next;
+
+    list_for_each_safe (current, tmp, head) {
+        char *current_value = list_entry(current, element_t, list)->value;
+        bool has_smaller_right = false;
+
+        for (next = current->next; next != head; next = next->next) {
+            char *next_value = list_entry(next, element_t, list)->value;
+            if (strcmp(current_value, next_value) > 0) {
+                has_smaller_right = true;
+                break;
+            }
+        }
+
+        if (has_smaller_right) {
+            list_del(current);
+            q_release_element(list_entry(current, element_t, list));
+        }
+    }
+
+    return q_size(head);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head)) {
+        return 0;
+    }
+
+    struct list_head *current, *tmp, *next;
+
+    list_for_each_safe (current, tmp, head) {
+        char *current_value = list_entry(current, element_t, list)->value;
+        bool has_greater_right = false;
+
+        for (next = current->next; next != head; next = next->next) {
+            char *next_value = list_entry(next, element_t, list)->value;
+            if (strcmp(current_value, next_value) < 0) {
+                has_greater_right = true;
+                break;
+            }
+        }
+
+        if (has_greater_right) {
+            list_del(current);
+            element_t *to_remove_element = list_entry(current, element_t, list);
+            q_release_element(to_remove_element);
+        }
+    }
+
+    return q_size(head);
 }
 
-/* Merge all the queues into one sorted queue, which is in ascending/descending
- * order */
+/* Merge all the queues into one sorted queue, which is in
+ * ascending/descending order */
 int q_merge(struct list_head *head, bool descend)
 {
     if (!head || list_empty(head)) {
