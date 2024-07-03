@@ -255,35 +255,76 @@ void q_reverseK(struct list_head *head, int k)
     // https://leetcode.com/problems/reverse-nodes-in-k-group/
 }
 
-/* Sort elements of queue in ascending/descending order */
+void merge(struct list_head *l_head,
+           struct list_head *r_head,
+           struct list_head *head)
+{
+    struct list_head temp_list;
+    INIT_LIST_HEAD(&temp_list);
+
+    while (!list_empty(l_head) || !list_empty(r_head)) {
+        struct list_head *chosen;
+
+        if (list_empty(l_head)) {
+            chosen = r_head;
+        } else if (list_empty(r_head)) {
+            chosen = l_head;
+        } else {
+            element_t *l_entry = list_entry(l_head->next, element_t, list);
+            element_t *r_entry = list_entry(r_head->next, element_t, list);
+            chosen =
+                (strcmp(l_entry->value, r_entry->value) <= 0) ? l_head : r_head;
+        }
+
+        list_move_tail(chosen->next, &temp_list);
+    }
+
+    list_splice_tail_init(&temp_list, head);
+}
+void merge_sort_recursive(struct list_head *head, int length)
+{
+    if (length <= 1)
+        return;
+
+    int mid = length / 2;
+    struct list_head left, right;
+    INIT_LIST_HEAD(&left);
+    INIT_LIST_HEAD(&right);
+
+    struct list_head *current = head->next;
+    for (int i = 0; i < mid; i++) {
+        struct list_head *next = current->next;
+        list_move_tail(current, &left);
+        current = next;
+    }
+    list_splice_tail_init(head, &right);
+
+    merge_sort_recursive(&left, mid);
+    merge_sort_recursive(&right, length - mid);
+
+    INIT_LIST_HEAD(head);
+    merge(&left, &right, head);
+}
+
+void merge_sort(struct list_head *head)
+{
+    if (!head || list_empty(head) || list_is_singular(head))
+        return;
+
+    int length = 0;
+    struct list_head *pos;
+    list_for_each (pos, head) {
+        length++;
+    }
+
+    merge_sort_recursive(head, length);
+}
 
 void q_sort(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head) || list_is_singular(head)) {
-        return;
-    }
-
-    struct list_head *i, *j, *next;
-    for (i = head->next->next; i != head; i = next) {
-        next = i->next;
-        element_t *i_element = list_entry(i, element_t, list);
-        j = i->prev;
-        while (j != head && strcmp(list_entry(j, element_t, list)->value,
-                                   i_element->value) > 0) {
-            j = j->prev;
-        }
-
-        if (i->prev == j) {
-            continue;
-        }
-
-        i->prev->next = i->next;
-        i->next->prev = i->prev;
-
-        i->next = j->next;
-        i->prev = j;
-        j->next->prev = i;
-        j->next = i;
+    merge_sort(head);
+    if (descend) {
+        q_reverse(head);
     }
 }
 
@@ -358,25 +399,25 @@ int q_merge(struct list_head *head, bool descend)
     if (!head || list_empty(head)) {
         return 0;
     }
+
+    queue_contex_t *base_queue = list_first_entry(head, queue_contex_t, chain);
     if (list_is_singular(head)) {
-        return 1;
+        return base_queue->size;
     }
 
-    int total_elements = 0;
-    queue_contex_t *context, *tmp;
-    struct list_head *first_queue = NULL;
+    queue_contex_t *queue_to_merge;
+    struct list_head *current, *next;
 
-    list_for_each_entry_safe (context, tmp, head, chain) {
-        if (!first_queue) {
-            first_queue = context->q;
-            total_elements += context->size;
-        } else {
-            list_splice_init(context->q, first_queue);
-            context->q = NULL;
-            total_elements += context->size;
+    list_for_each_safe (current, next, head) {
+        if (current == &base_queue->chain) {
+            continue;
         }
+        queue_to_merge = list_entry(current, queue_contex_t, chain);
+        list_splice_tail_init(queue_to_merge->q, base_queue->q);
+        base_queue->size += queue_to_merge->size;
     }
-    q_sort(first_queue, false);
 
-    return total_elements;
+    q_sort(base_queue->q, descend);
+    return base_queue->size;
 }
+
